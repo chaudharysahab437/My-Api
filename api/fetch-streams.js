@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     finalSecureResponse[key] = encodeToCustomString(val);
   }
 
-  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', allowedDomain);
   res.setHeader('Content-Type', 'application/json');
   
