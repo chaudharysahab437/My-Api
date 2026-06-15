@@ -86,8 +86,12 @@ export default async function handler(req, res) {
   }
 
   // Keval tumhari website ko response read karne ki ijaajat dena
+  // ❌ Purani Cache-Control line ko hatao aur ye 3 lines lagao:
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   res.setHeader('Access-Control-Allow-Origin', allowedDomain);
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
   res.setHeader('Content-Type', 'application/json');
   
   return res.status(200).json(master_list);
