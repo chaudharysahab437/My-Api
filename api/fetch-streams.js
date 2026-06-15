@@ -26,7 +26,10 @@ export default async function handler(req, res) {
     'https://cricxplorerslive.blogspot.com'
   ];
 
-  const isAllowed = allowedDomains.some(domain => referer.startsWith(domain) || origin === domain);
+  const isAllowed = allowedDomains.some(domain => {
+    const rawDomain = domain.replace('https://', '').replace('http://', '');
+    return referer.includes(rawDomain) || origin.includes(rawDomain);
+  });
 
   if (!referer && !origin) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -99,7 +102,17 @@ export default async function handler(req, res) {
     finalSecureResponse[key] = encodeToCustomString(val);
   }
 
-  const matchedOrigin = allowedDomains.find(domain => referer.startsWith(domain) || origin === domain) || allowedDomains[0];
+  let matchedOrigin = allowedDomains[0];
+  if (origin) {
+    matchedOrigin = origin;
+  } else if (referer) {
+    try {
+      const urlObj = new URL(referer);
+      matchedOrigin = `${urlObj.protocol}//${urlObj.host}`;
+    } catch (e) {
+      matchedOrigin = allowedDomains[0];
+    }
+  }
 
   res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', matchedOrigin);
