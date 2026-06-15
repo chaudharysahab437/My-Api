@@ -5,6 +5,10 @@
       "source": "/api/fetch-streams",
       "headers": [
         {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://chaudhary-player.netlify.app"
+        },
+        {
           "key": "Access-Control-Allow-Methods",
           "value": "GET"
         },
