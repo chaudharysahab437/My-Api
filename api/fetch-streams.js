@@ -22,14 +22,10 @@ export default async function handler(req, res) {
   
   const allowedDomains = [
     'https://chaudhary-player.netlify.app',
-    'https://ckdlive.blogspot.com',
-    'https://cricxplorerslive.blogspot.com'
+    'https://cxp-admin.netlify.app/'
   ];
 
-  const isAllowed = allowedDomains.some(domain => {
-    const rawDomain = domain.replace('https://', '').replace('http://', '');
-    return referer.includes(rawDomain) || origin.includes(rawDomain);
-  });
+  const isAllowed = allowedDomains.some(domain => referer.startsWith(domain) || origin === domain);
 
   if (!referer && !origin) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -102,17 +98,7 @@ export default async function handler(req, res) {
     finalSecureResponse[key] = encodeToCustomString(val);
   }
 
-  let matchedOrigin = allowedDomains[0];
-  if (origin) {
-    matchedOrigin = origin;
-  } else if (referer) {
-    try {
-      const urlObj = new URL(referer);
-      matchedOrigin = `${urlObj.protocol}//${urlObj.host}`;
-    } catch (e) {
-      matchedOrigin = allowedDomains[0];
-    }
-  }
+  const matchedOrigin = allowedDomains.find(domain => referer.startsWith(domain) || origin === domain) || allowedDomains[0];
 
   res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', matchedOrigin);
