@@ -19,7 +19,14 @@ function encodeToCustomString(obj) {
 export default async function handler(req, res) {
   const referer = req.headers['referer'] || '';
   const origin = req.headers['origin'] || '';
-  const allowedDomain = 'https://chaudhary-player.netlify.app';
+  
+  const allowedDomains = [
+    'https://chaudhary-player.netlify.app',
+    'https://ckdlive.blogspot.com',
+    'https://cricxplorerslive.blogspot.com'
+  ];
+
+  const isAllowed = allowedDomains.some(domain => referer.startsWith(domain) || origin === domain);
 
   if (!referer && !origin) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -32,7 +39,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (referer && !referer.startsWith(allowedDomain)) {
+  if (!isAllowed) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -40,17 +47,6 @@ export default async function handler(req, res) {
     return res.status(403).json({ 
       error: "Access Denied", 
       message: "Unauthorized domain source!" 
-    });
-  }
-
-  if (origin && origin !== allowedDomain) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(403).json({ 
-      error: "Access Denied", 
-      message: "CORS Violation!" 
     });
   }
 
@@ -103,8 +99,10 @@ export default async function handler(req, res) {
     finalSecureResponse[key] = encodeToCustomString(val);
   }
 
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=60');
-  res.setHeader('Access-Control-Allow-Origin', allowedDomain);
+  const matchedOrigin = allowedDomains.find(domain => referer.startsWith(domain) || origin === domain) || allowedDomains[0];
+
+  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=60');
+  res.setHeader('Access-Control-Allow-Origin', matchedOrigin);
   res.setHeader('Content-Type', 'application/json');
   
   return res.status(200).json(finalSecureResponse);
