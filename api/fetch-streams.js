@@ -22,7 +22,8 @@ export default async function handler(req, res) {
   
   const allowedDomains = [
     'https://chaudhary-player.netlify.app',
-    'https://cxp-admin.netlify.app/'
+    'https://ckdlive.blogspot.com',
+    'https://cricxplorerslive.blogspot.com'
   ];
 
   const isAllowed = allowedDomains.some(domain => referer.startsWith(domain) || origin === domain);
