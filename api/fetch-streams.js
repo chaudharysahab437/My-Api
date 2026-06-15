@@ -1,26 +1,46 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // 1. Get Referer and Origin from headers
-  const referer = req.headers.referer || '';
-  const origin = req.headers.origin || '';
+  // 1. Headers nikalna
+  const referer = req.headers['referer'] || '';
+  const origin = req.headers['origin'] || '';
+  const host = req.headers['host'] || '';
+  
+  // 2. Strict Domain URL (Bina slash ke aur slash ke sath dono check karenge)
   const allowedDomain = 'https://chaudhary-player.netlify.app';
 
-  // 🚨 ULTIMATE SECURITY SHIELD: 
-  // Agar koi browser me direct khol raha hai (khali referer) 
-  // YA kisi doosre domain se fetch kar raha hai, toh turant laat maaro (Block)!
-  if (!referer || !referer.startsWith(allowedDomain)) {
+  // 🚨 SECURITY LAYER 1: Agar request direct browser ki address bar se aayi hai (No Referer & No Origin)
+  if (!referer && !origin) {
     res.setHeader('Content-Type', 'application/json');
     return res.status(403).json({ 
-      error: "Access Denied!", 
-      message: "Security active. Direct access or unauthorized domains are strictly prohibited." 
+      error: "Access Denied", 
+      message: "Direct browser access is strictly prohibited!" 
     });
   }
 
-  // Baki saara fetch aur processing code niche waisa hi rahega...
-  const USER_AGENT = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36";
+  // 🚨 SECURITY LAYER 2: Agar Referer hai, toh check karo ki kya wo tumhari Netlify site se hi shuru ho raha hai
+  if (referer && !referer.startsWith(allowedDomain)) {
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(403).json({ 
+      error: "Access Denied", 
+      message: "Unauthorized domain source!" 
+    });
+  }
+
+  // 🚨 SECURITY LAYER 3: Agar Origin header hai (jo fetch requests me hota hai), toh wo exact match hona chahiye
+  if (origin && origin !== allowedDomain) {
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(403).json({ 
+      error: "Access Denied", 
+      message: "CORS Violation!" 
+    });
+  }
+
+  // ==========================================
+  // 🔥 AGAR SARE CHECK PASS HUYE, TOH HI DATA FETCH HOGA
+  // ==========================================
   
-  // (Aapka purana SOURCES aur loop wala logic yahan aayega)
+  const USER_AGENT = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36";
   
   const SOURCES = {
     "cricfusion": {
@@ -45,7 +65,6 @@ export default async function handler(req, res) {
 
   let master_list = {};
 
-  // 🔄 Fetch Logic for all 3 APIs
   for (const [source_name, config] of Object.entries(SOURCES)) {
     for (const item of config.items) {
       try {
@@ -66,8 +85,10 @@ export default async function handler(req, res) {
     }
   }
 
-  // ✨ Caching & CORS Security
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30'); // 1 min cache
-  res.setHeader('Access-Control-Allow-Origin', 'https://chaudhary-player.netlify.app');
+  // Keval tumhari website ko response read karne ki ijaajat dena
+  res.setHeader('Access-Control-Allow-Origin', allowedDomain);
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+  res.setHeader('Content-Type', 'application/json');
+  
   return res.status(200).json(master_list);
 }
