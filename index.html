@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CKD FIFA - Live Stream</title>
+    <style>
+        :root {
+            --primary-gold: #f5b301;
+            --dark-blue: rgba(2, 11, 20, 0.4); 
+            --glass-bg: rgba(2, 11, 20, 0.55);
+            --border-color: rgba(245, 179, 1, 0.25);
+            --text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body { 
+            background: url('https://image-resizer-cloud-cdn.cms-api.tvnz.co.nz/image/53011A53-2604-40EC-8020-BDD49D24CACE/2-16x9.jpg?height=2160') no-repeat center center fixed;
+            background-size: cover;
+            color: white; 
+            min-height: 100vh; 
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(2, 11, 20, 0.65);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--primary-gold);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: var(--text-shadow);
+        }
+
+        header h1 span { color: var(--primary-gold); }
+
+        .live-indicator {
+            background: #ff0055;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
+            animation: blink 1.5s infinite;
+        }
+
+        .main-container { 
+            display: flex; 
+            flex: 1;
+            width: 100%; 
+            padding: 25px;
+            gap: 25px;
+            max-height: calc(100vh - 68px);
+            overflow: hidden;
+        }
+        
+        .player-wrapper { 
+            flex: 2.8; 
+            background: rgba(0, 0, 0, 0.4); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            aspect-ratio: 16/9;
+        }
+
+        .player-wrapper iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: 0; 
+        }
+        
+        .sidebar { 
+            flex: 1.2; 
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid var(--border-color); 
+            padding: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .scrollable-channels {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 5px;
+        }
+
+        .scrollable-channels::-webkit-scrollbar { width: 5px; }
+        .scrollable-channels::-webkit-scrollbar-thumb {
+            background: var(--primary-gold);
+            border-radius: 10px;
+        }
+        
+        .sidebar-heading { 
+            color: var(--primary-gold); 
+            font-size: 14px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin-bottom: 15px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            text-shadow: var(--text-shadow);
+        }
+        
+        .channel-button { 
+            background: rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            color: #fff; 
+            padding: 15px 18px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            text-align: left; 
+            font-weight: 700; 
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-shadow: var(--text-shadow);
+        }
+
+        .channel-button::before {
+            content: '⚽';
+            margin-right: 12px;
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        
+        .channel-button:hover { 
+            background: rgba(245, 179, 1, 0.15); 
+            border-color: var(--primary-gold); 
+            box-shadow: 0 0 15px rgba(245, 179, 1, 0.2);
+            transform: translateX(4px);
+        }
+
+        .channel-button.active { 
+            background: linear-gradient(90deg, #f5b301 0%, #d49a00 100%);
+            border-color: #fff; 
+            color: #020b14; 
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(245, 179, 1, 0.4);
+            transform: translateX(4px);
+            text-shadow: none;
+        }
+
+        .channel-button.active::before { transform: rotate(360deg); }
+
+        footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        footer span { color: var(--primary-gold); font-weight: bold; }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 992px) {
+            body { overflow-y: auto; }
+            .main-container { 
+                flex-direction: column; 
+                max-height: none; 
+                padding: 15px;
+                gap: 15px;
+            } 
+            .player-wrapper { flex: none; width: 100%; } 
+            .sidebar { flex: none; width: 100%; height: auto; padding: 20px; } 
+            .scrollable-channels { max-height: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CKD <span>FIFA</span></h1>
+        <div class="live-indicator">LIVE</div>
+    </header>
+
+    <div class="main-container">
+        <div class="player-wrapper">
+            <iframe id="stream-player" 
+                    src="about:blank" 
+                    allowfullscreen 
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    referrerpolicy="no-referrer">
+            </iframe>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-heading">Select Stadium Feed</div>
+            <div class="scrollable-channels" id="sidebar-channels"></div>
+            
+            <footer>
+                Developed by <span>Shiva Chaudhary</span>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const jsonUrl = "https://raw.githubusercontent.com/bsaisehi/Stream-links/refs/heads/main/stickers.json"; 
+        
+        // Localhost par yeh "/api/bypass", production Vercel par automatic handle ho jayega
+        const proxyApi = "/api/bypass";
+
+        async function initFIFAStudio() {
+            try {
+                const response = await fetch(jsonUrl);
+                const serverData = await response.json();
+                
+                const sidebar = document.getElementById('sidebar-channels');
+                const player = document.getElementById('stream-player');
+
+                // 1. Initial Load setup
+                if (serverData.length > 0 && serverData[0].url) {
+                    const initialTimestamp = new Date().getTime();
+                    player.src = `${proxyApi}?stream_url=${encodeURIComponent(serverData[0].url.trim())}&cb=${initialTimestamp}`;
+                }
+
+                // 2. Click Generation Loop
+                serverData.forEach((item, index) => {
+                    if (!item.name || !item.url) return;
+
+                    const btn = document.createElement('button');
+                    btn.className = `channel-button ${index === 0 ? 'active' : ''}`;
+                    btn.innerText = item.name;
+                    
+                    btn.onclick = () => {
+                        player.src = "about:blank";
+                        const clickTimestamp = new Date().getTime();
+                        
+                        // Strict Custom Local/Vercel Proxy Execution
+                        const targetProxyLink = `${proxyApi}?stream_url=${encodeURIComponent(item.url.trim())}&cb=${clickTimestamp}`;
+                        
+                        setTimeout(() => {
+                            player.src = targetProxyLink;
+                        }, 50);
+                        
+                        document.querySelectorAll('.channel-button').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    };
+
+                    sidebar.appendChild(btn);
+                });
+            } catch (error) {
+                console.error("FIFA Dashboard Engine Error:", error);
+            }
+        }
+
+        initFIFAStudio();
+    </script>
+</body>
+</html>
