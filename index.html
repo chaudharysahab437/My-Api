@@ -30,6 +30,7 @@
             overflow-x: hidden;
         }
 
+        /* Top Header with Glassmorphism */
         header {
             background: rgba(2, 11, 20, 0.65);
             backdrop-filter: blur(15px);
@@ -52,7 +53,9 @@
             text-shadow: var(--text-shadow);
         }
 
-        header h1 span { color: var(--primary-gold); }
+        header h1 span {
+            color: var(--primary-gold);
+        }
 
         .live-indicator {
             background: #ff0055;
@@ -65,6 +68,7 @@
             animation: blink 1.5s infinite;
         }
 
+        /* Main Grid Wrapper */
         .main-container { 
             display: flex; 
             flex: 1;
@@ -75,6 +79,7 @@
             overflow: hidden;
         }
         
+        /* Video Player Glass Section */
         .player-wrapper { 
             flex: 2.8; 
             background: rgba(0, 0, 0, 0.4); 
@@ -93,6 +98,7 @@
             border: 0; 
         }
         
+        /* Sidebar Glassmorphism Styling */
         .sidebar { 
             flex: 1.2; 
             background: var(--glass-bg);
@@ -115,7 +121,9 @@
             padding-right: 5px;
         }
 
-        .scrollable-channels::-webkit-scrollbar { width: 5px; }
+        .scrollable-channels::-webkit-scrollbar {
+            width: 5px;
+        }
         .scrollable-channels::-webkit-scrollbar-thumb {
             background: var(--primary-gold);
             border-radius: 10px;
@@ -133,6 +141,7 @@
             text-shadow: var(--text-shadow);
         }
         
+        /* Premium Buttons */
         .channel-button { 
             background: rgba(255, 255, 255, 0.06); 
             border: 1px solid rgba(255, 255, 255, 0.1); 
@@ -173,7 +182,9 @@
             text-shadow: none;
         }
 
-        .channel-button.active::before { transform: rotate(360deg); }
+        .channel-button.active::before {
+            transform: rotate(360deg);
+        }
 
         footer {
             margin-top: auto;
@@ -185,7 +196,10 @@
             letter-spacing: 0.5px;
         }
 
-        footer span { color: var(--primary-gold); font-weight: bold; }
+        footer span {
+            color: var(--primary-gold);
+            font-weight: bold;
+        }
 
         @keyframes blink {
             0% { opacity: 1; }
@@ -201,9 +215,19 @@
                 padding: 15px;
                 gap: 15px;
             } 
-            .player-wrapper { flex: none; width: 100%; } 
-            .sidebar { flex: none; width: 100%; height: auto; padding: 20px; } 
-            .scrollable-channels { max-height: 300px; }
+            .player-wrapper { 
+                flex: none; 
+                width: 100%;
+            } 
+            .sidebar { 
+                flex: none; 
+                width: 100%;
+                height: auto;
+                padding: 20px;
+            } 
+            .scrollable-channels {
+                max-height: 300px; 
+            }
         }
     </style>
 </head>
@@ -217,11 +241,12 @@
     <div class="main-container">
         <div class="player-wrapper">
             <iframe id="stream-player" 
-                    src="about:blank" 
-                    allowfullscreen 
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                    referrerpolicy="no-referrer">
-            </iframe>
+        name="stream-player" 
+        src="about:blank" 
+        allowfullscreen 
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        referrerpolicy="no-referrer">
+</iframe>
         </div>
 
         <div class="sidebar">
@@ -236,9 +261,6 @@
 
     <script>
         const jsonUrl = "https://raw.githubusercontent.com/bsaisehi/Stream-links/refs/heads/main/stickers.json"; 
-        
-        // Localhost par yeh "/api/bypass", production Vercel par automatic handle ho jayega
-        const proxyApi = "/api/bypass";
 
         async function initFIFAStudio() {
             try {
@@ -248,39 +270,54 @@
                 const sidebar = document.getElementById('sidebar-channels');
                 const player = document.getElementById('stream-player');
 
-                // 1. Initial Load setup
+                // 1. Initial Page Load (Direct Injection Without Global Single-IP API Blocks)
                 if (serverData.length > 0 && serverData[0].url) {
-                    const initialTimestamp = new Date().getTime();
-                    player.src = `${proxyApi}?stream_url=${encodeURIComponent(serverData[0].url.trim())}&cb=${initialTimestamp}`;
+                    player.src = serverData[0].url.trim();
                 }
 
-                // 2. Click Generation Loop
+                // 2. Generating Dynamic Stream Selectors Without Header Leaks
                 serverData.forEach((item, index) => {
-                    if (!item.name || !item.url) return;
+    if (!item.name || !item.url) return;
 
-                    const btn = document.createElement('button');
-                    btn.className = `channel-button ${index === 0 ? 'active' : ''}`;
-                    btn.innerText = item.name;
-                    
-                    btn.onclick = () => {
-                        player.src = "about:blank";
-                        const clickTimestamp = new Date().getTime();
-                        
-                        // Strict Custom Local/Vercel Proxy Execution
-                        const targetProxyLink = `${proxyApi}?stream_url=${encodeURIComponent(item.url.trim())}&cb=${clickTimestamp}`;
-                        
-                        setTimeout(() => {
-                            player.src = targetProxyLink;
-                        }, 50);
-                        
-                        document.querySelectorAll('.channel-button').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                    };
+    const btn = document.createElement('button');
+    btn.className = `channel-button ${index === 0 ? 'active' : ''}`;
+    btn.innerText = item.name;
+    
+    btn.onclick = () => {
+        // 1. Iframe ko reset karo
+        player.src = "about:blank";
+        
+        const cleanStreamUrl = item.url.trim();
+        
+        // 2. SHADOW LINK METHOD:
+        // Hum ek naya temporary link component banayenge browser memory me
+        const shadowLink = document.createElement('a');
+        shadowLink.href = cleanStreamUrl;
+        
+        // Yeh browser ko bolega ki hamari website ka koi data server ko mat bhejo
+        shadowLink.rel = "noreferrer noopener";
+        
+        // Hum link ko target kar rahe hain hamare iframe ke ID par!
+        // Isse browser sochega ki user ne direct link par click kiya hai, aur stream sahi chalegi!
+        shadowLink.target = "stream-player"; 
+        
+        // DOM me append karke click trigger karna aur remove karna
+        document.body.appendChild(shadowLink);
+        
+        setTimeout(() => {
+            shadowLink.click();
+            document.body.removeChild(shadowLink);
+        }, 50);
+        
+        document.querySelectorAll('.channel-button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    };
 
-                    sidebar.appendChild(btn);
-                });
+    sidebar.appendChild(btn);
+});
+
             } catch (error) {
-                console.error("FIFA Dashboard Engine Error:", error);
+                console.error("FIFA Live Dashboard Engine execution fault:", error);
             }
         }
 
