@@ -2,21 +2,16 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
-  // CORS enable for iframes
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
 
-  // Stream URL query param se read karein
   const streamUrl = req.query.streamUrl;
-
-  // Akamai Player ka target URL build karein
   let targetUrl = 'https://players.akamai.com/players/hlsjs';
   if (streamUrl) {
     targetUrl += `?streamUrl=${encodeURIComponent(streamUrl)}`;
   }
 
   try {
-    // 1. Target page fetch karein
     const response = await axios.get(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -24,21 +19,23 @@ module.exports = async (req, res) => {
       }
     });
 
-    // 2. HTML load karein manipulation ke liye
     const $ = cheerio.load(response.data);
 
-    // 3. Subhi unwanted HTML elements ko completely remove karein
-    $('h1').remove();                                  // Player Testing Heading
-    $('.navbar-brand').remove();                       // Akamai Logo
-    $('.navbar-toggler').remove();                     // Mobile Menu Toggle Button
-    $('#navbarSupportedContent').remove();             // Navigation Bar (Players, Stream Validator)
-    $('.footer-copyright').remove();                   // Footer links
-    $('app-stat-viewer').remove();                     // HTML5 & Advanced Statistics graphs
-    $('app-player-info').remove();                     // Player Info Box
-    $('app-general-stats').remove();                   // General Statistics Box
-    $('.stats').remove();                              // Extra Stats Wrapper Div
+    // 1. FIX 404 JS/CSS ERRORS: Base URL inject karein taaki relative paths Akamai par point karein
+    $('head').prepend('<base href="https://players.akamai.com/players/hlsjs/">');
 
-    // 4. Clean layout styling inject karein (Pure Player Viewport)
+    // 2. Unwanted elements remove karein
+    $('h1').remove();
+    $('.navbar-brand').remove();
+    $('.navbar-toggler').remove();
+    $('#navbarSupportedContent').remove();
+    $('.footer-copyright').remove();
+    $('app-stat-viewer').remove();
+    $('app-player-info').remove();
+    $('app-general-stats').remove();
+    $('.stats').remove();
+
+    // 3. Fullscreen & Clean layout CSS inject karein
     $('head').append(`
       <style>
         body, html {
@@ -46,15 +43,14 @@ module.exports = async (req, res) => {
           padding: 0 !important;
           background-color: #000 !important;
           overflow: hidden !important;
-          width: 100% !important;
-          height: 100% !important;
+          width: 100vw !important;
+          height: 100vh !important;
         }
         app-root {
           display: block;
           width: 100vw;
           height: 100vh;
         }
-        /* Player ko full screen/iframe cover karwane ke liye */
         video, .video-js, app-hlsjs-player {
           width: 100% !important;
           height: 100% !important;
@@ -63,11 +59,10 @@ module.exports = async (req, res) => {
       </style>
     `);
 
-    // 5. Cleaned HTML response bhejein
     return res.status(200).send($.html());
 
   } catch (error) {
     console.error('HTML Proxy Error:', error.message);
-    return res.status(500).send(`<h2>Error loading clean player page: ${error.message}</h2>`);
+    return res.status(500).send(`<h2>Error loading player: ${error.message}</h2>`);
   }
 };
