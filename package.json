@@ -1,8 +1,7 @@
 {
-  "name": "streams-auto",
+  "name": "vercel-hls-proxy",
   "version": "1.0.0",
-  "type": "module", 
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "axios": "^1.6.0"
   }
 }
