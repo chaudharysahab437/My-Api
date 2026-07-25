@@ -21,8 +21,23 @@ module.exports = async (req, res) => {
 
     const $ = cheerio.load(response.data);
 
-    // 1. FIX 404 JS/CSS ERRORS: Base URL inject karein taaki relative paths Akamai par point karein
-    $('head').prepend('<base href="https://players.akamai.com/players/hlsjs/">');
+    // 1. FIX JS & CSS PATHS: Saare relative URLs ko Akamai root domain par point karein
+    $('script[src]').each((i, el) => {
+      const src = $(el).attr('src');
+      if (src && !src.startsWith('http://') && !src.startsWith('https://')) {
+        // Agar path '/' se start nahi ho raha toh '/' add kar do
+        const cleanSrc = src.startsWith('/') ? src : '/' + src;
+        $(el).attr('src', `https://players.akamai.com${cleanSrc}`);
+      }
+    });
+
+    $('link[rel="stylesheet"]').each((i, el) => {
+      const href = $(el).attr('href');
+      if (href && !href.startsWith('http://') && !href.startsWith('https://')) {
+        const cleanHref = href.startsWith('/') ? href : '/' + href;
+        $(el).attr('href', `https://players.akamai.com${cleanHref}`);
+      }
+    });
 
     // 2. Unwanted elements remove karein
     $('h1').remove();
@@ -35,7 +50,7 @@ module.exports = async (req, res) => {
     $('app-general-stats').remove();
     $('.stats').remove();
 
-    // 3. Fullscreen & Clean layout CSS inject karein
+    // 3. Fullscreen layout CSS inject karein
     $('head').append(`
       <style>
         body, html {
