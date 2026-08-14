@@ -1,83 +1,90 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+
+const HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Origin': 'https://classplusapp.com',
+    'Referer': 'https://classplusapp.com/',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'cross-site',
+};
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-
-  const streamUrl = req.query.streamUrl;
-  let targetUrl = 'https://players.akamai.com/players/hlsjs';
-  if (streamUrl) {
-    targetUrl += `?streamUrl=${encodeURIComponent(streamUrl)}`;
-  }
-
-  try {
-    const response = await axios.get(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://players.akamai.com/'
-      }
-    });
-
-    const $ = cheerio.load(response.data);
-
-    // 1. FIX JS & CSS PATHS: Saare relative URLs ko Akamai root domain par point karein
-    $('script[src]').each((i, el) => {
-      const src = $(el).attr('src');
-      if (src && !src.startsWith('http://') && !src.startsWith('https://')) {
-        // Agar path '/' se start nahi ho raha toh '/' add kar do
-        const cleanSrc = src.startsWith('/') ? src : '/' + src;
-        $(el).attr('src', `https://players.akamai.com${cleanSrc}`);
-      }
-    });
-
-    $('link[rel="stylesheet"]').each((i, el) => {
-      const href = $(el).attr('href');
-      if (href && !href.startsWith('http://') && !href.startsWith('https://')) {
-        const cleanHref = href.startsWith('/') ? href : '/' + href;
-        $(el).attr('href', `https://players.akamai.com${cleanHref}`);
-      }
-    });
-
-    // 2. Unwanted elements remove karein
-    $('h1').remove();
-    $('.navbar-brand').remove();
-    $('.navbar-toggler').remove();
-    $('#navbarSupportedContent').remove();
-    $('.footer-copyright').remove();
-    $('app-stat-viewer').remove();
-    $('app-player-info').remove();
-    $('app-general-stats').remove();
-    $('.stats').remove();
-
-    // 3. Fullscreen layout CSS inject karein
-    $('head').append(`
-      <style>
-        body, html {
-          margin: 0 !important;
-          padding: 0 !important;
-          background-color: #000 !important;
-          overflow: hidden !important;
-          width: 100vw !important;
-          height: 100vh !important;
+    const url = req.query.url;
+    
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+    
+    if (!url) {
+        res.status(200).json({
+            status: "active",
+            service: "Classplus Video Proxy",
+            usage: "/api?url=YOUR_CLASSPLUS_URL",
+            example: "/api?url=https://akamai-cdn.classplusapp.com/gcs/..."
+        });
+        return;
+    }
+    
+    try {
+        const response = await axios.get(url, {
+            headers: HEADERS,
+            responseType: 'arraybuffer',
+            maxRedirects: 5,
+            timeout: 10000,
+            validateStatus: function (status) {
+                return status >= 200 && status < 500;
+            }
+        });
+        
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+        
+        // m3u8 playlist handle karo
+        if (url.includes('.m3u8') && contentType.includes('mpegurl')) {
+            let content = response.data.toString('utf8');
+            
+            if (content.includes('#EXTM3U')) {
+                const lines = content.split('\n');
+                const newLines = [];
+                const baseUrl = url.substring(0, url.lastIndexOf('/'));
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line && !line.startsWith('#')) {
+                        let segUrl;
+                        if (line.startsWith('http')) {
+                            segUrl = line;
+                        } else {
+                            segUrl = `${baseUrl}/${line}`;
+                        }
+                        const encodedUrl = encodeURIComponent(segUrl);
+                        newLines.push(`/api?url=${encodedUrl}`);
+                    } else {
+                        newLines.push(line);
+                    }
+                }
+                
+                content = newLines.join('\n');
+                res.send(Buffer.from(content));
+            } else {
+                res.send(response.data);
+            }
+        } else {
+            // Direct video/segment stream
+            res.send(response.data);
         }
-        app-root {
-          display: block;
-          width: 100vw;
-          height: 100vh;
-        }
-        video, .video-js, app-hlsjs-player {
-          width: 100% !important;
-          height: 100% !important;
-          max-height: 100vh !important;
-        }
-      </style>
-    `);
-
-    return res.status(200).send($.html());
-
-  } catch (error) {
-    console.error('HTML Proxy Error:', error.message);
-    return res.status(500).send(`<h2>Error loading player: ${error.message}</h2>`);
-  }
+        
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
 };
